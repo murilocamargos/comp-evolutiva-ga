@@ -19,18 +19,29 @@ class Evolute(object):
 
     def evalPop(self):
         self.checkConfig(['fitnessEval'])
-        return np.array([self.config['fitnessEval'](i) for i in self.config['pop']])
+        return np.apply_along_axis(self.config['fitnessEval'], 1, self.config['pop'])
 
-    def selection(self):
-        self.checkConfig(['selectionType', 'pop', 'fitnessEval', 'popDim'])
+    def selectionOperator(self):
+        self.checkConfig(['selectionType', 'pop', 'fitnessEval', 'popDim', 'popSize'])
 
         c = self.config
-        S = []
+        S = np.zeros((c['popSize'], c['popDim']))
         if c['selectionType'] == 'roulette':
             f = self.evalPop()
             a = np.cumsum(f/(len(f)*np.mean(f)))
             for i in np.arange(len(f)):
-                S.append(c['pop'][((a > np.random.rand()) == True).tostring().find('\x01')])
+                ind = c['pop'][((a > np.random.rand()) == True).tostring().find('\x01')]
+                S[i,:] = ind
+            return S
+        if c['selectionType'] == 'tournament':
+            k = min(2, c['popSize'])
+            a = np.arange(c['popSize'])
+            for i in xrange(c['popSize']):
+                np.random.shuffle(a)
+                sol = e.config['pop'][a[:k],:]
+                tnm = np.apply_along_axis(self.config['fitnessEval'], 1, sol)
+                win = sol[np.argsort(tnm)[-1]]
+                S[i,:] = win
             return S
         
         raise Exception('O método de seleção `' + c['selectionType'] + '` ainda não foi implementado!')
@@ -53,24 +64,44 @@ class Evolute(object):
 
         raise Exception('O cruzamento `' + c['crossType'] + '` ainda não foi implementado!')
     
-    def crossOperator(self):
-        self.checkConfig(['crossRate', 'pop'])
+    def crossOverOperator(self, S = None):
+        self.checkConfig(['crossRate', 'pop', 'popDim'])
 
         c = self.config
+
+        popSize = len(S) if type(S) == np.ndarray else c['popSize']
+        pop = np.array(S) if type(S) == np.ndarray else c['pop']
+        popDim = len(S[0]) if type(S) == np.ndarray else c['popDim']
         
-        matingPool = np.arange(c['popSize'])
-        np.random.shuffle(matingPool)
+        Q = np.zeros((1, popDim))
+        for i in np.arange(0, popSize, 2):
+            if i+1 <= popSize and np.random.rand() <= c['crossRate']:
+                i1, i2 = np.round(np.random.rand(2) * (popSize - 1))
+                Q = np.vstack((Q, self.crossOver(pop[int(i1)], pop[int(i2)])))
 
-        Q = []
-        for i in np.arange(0, c['popSize'], 2):
-            if i+1 <= c['popSize'] and np.random.rand() <= c['crossRate']:
-                i1, i2 = np.round(np.random.rand(2) * (c['popSize'] - 1))
-                Q += self.crossOver(c['pop'][int(i1)], c['pop'][int(i2)])
+        return Q[1:,:]
 
-        return Q
+    def mutationOperator(self, P = None):
+        self.checkConfig(['mutationRate', 'pop', 'popDim'])
 
+        c = self.config
 
+        popSize = len(P) if type(P) == np.ndarray else c['popSize']
+        pop = np.array(P) if type(P) == np.ndarray else np.array(c['pop'])
+        popDim = len(P[0]) if type(P) == np.ndarray else c['popDim']
 
+        for i in xrange(popSize):
+            if c['mutationType'] == '1bit':
+                bit = np.random.randint(0,36)
+                if np.random.rand() <= c['mutationRate']:
+                    pop[i][bit] = int(not pop[i][bit])
+            elif c['mutationType'] == 'uniform':
+                idx = np.where(np.random.rand(1, popDim) <= c['mutationRate'])[1]
+                pop[i][idx] = abs(pop[i] - 1)[idx]
+            else:
+                raise Exception('O operador de mutação `' + c['mutationType'] + '` ainda não foi implementado!')
+
+        return pop
 
 
 
@@ -84,7 +115,6 @@ def saida(bits):
     + b[23]*b[4] + b[21]*b[15] + b[26]*b[16] + b[31]*b[12]\
     + b[25]*b[19] + b[7]*b[8] + b[9]*b[18] + b[1]*b[33]
 
-a = np.vectorize(saida)
 e = Evolute({
     'popSize': 10,
     'popDim': 36,
@@ -92,9 +122,15 @@ e = Evolute({
     'fitnessEval': saida,
     'crossRate': 0.6,
     'crossType': 'uniform',
-    'selectionType': 'roulette'
+    'selectionType': 'tournament',
+    'mutationRate': 0.1,
+    'mutationType': 'uniform'
 })
 
 e.genRandPop()
-a = e.selection()
-print a
+
+s = e.selectionOperator()
+q = e.crossOverOperator(s)
+t = e.mutationOperator(q)
+
+print len(t)
