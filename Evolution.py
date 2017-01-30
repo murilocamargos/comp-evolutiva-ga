@@ -147,12 +147,15 @@ e = GA({
     'representation': 'binary',
     'fitnessEval': saida,
     'crossRate': 0.8,
-    'crossType': '1cp',
-    'selectionType': 'roulette',
+    'crossType': 'uniform',
+    'selectionType': 'tournament',
     'mutationRate': 0.025,
-    'mutationType': '1bit',
+    'mutationType': 'uniform',
     'maxEpochs': 50
 })
 
-f = e.test(100, '12_crossType_1cp')
+f = e.test(100, '54_mutationRate_0.75')
 print(max(f), min(f), np.mean(f))
+
+#f=np.load('21_selectionType_roulette.npy')
+#print(max(f), min(f), np.mean(f))
