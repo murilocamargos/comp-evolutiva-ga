@@ -147,12 +147,12 @@ e = GA({
     'representation': 'binary',
     'fitnessEval': saida,
     'crossRate': 0.8,
-    'crossType': 'uniform',
+    'crossType': '1cp',
     'selectionType': 'roulette',
     'mutationRate': 0.025,
     'mutationType': '1bit',
     'maxEpochs': 50
 })
 
-f = e.test(100, '1_crossType_uniform')
+f = e.test(100, '12_crossType_1cp')
 print(max(f), min(f), np.mean(f))
