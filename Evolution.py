@@ -160,12 +160,12 @@ e = GA({
     'popDim': 36,
     'representation': 'binary',
     'fitnessEval': saida,
-    'crossRate': 0.8,
-    'crossType': '1cp',
+    'crossRate': 0.5,
+    'crossType': 'uniform',
     'selectionType': 'roulette',
-    'mutationRate': 0.025,
+    'mutationRate': 0.75,
     'mutationType': 'uniform',
     'maxEpochs': 50
 })
 
-e.test(100, '12_crossType_1cp')
+e.test(100, '55_mutationRate_0.75')

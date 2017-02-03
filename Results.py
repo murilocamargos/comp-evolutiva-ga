@@ -2,8 +2,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import Wilcoxon
+from scipy import stats
 
-files = ['11_crossType_uniform', '12_crossType_1cp']
+files = ['51_mutationRate_0.025','52_mutationRate_0.05','53_mutationRate_0.1','54_mutationRate_0.25','55_mutationRate_0.75']
 
 alldata = []
 wilcoxondata = []
@@ -27,9 +28,21 @@ for f in files:
         alldata = np.vstack((alldata, data))
 
 
-print('Teste de Wilcoxon', Wilcoxon.test(wilcoxondata[0], wilcoxondata[1]))
-
 alldata = alldata.T
 plt.boxplot(alldata)
-plt.xticks([1, 2], files)
+plt.xticks(np.arange(1, len(files) + 1), files)
 plt.show()
+
+print(stats.ranksums(wilcoxondata[0], wilcoxondata[1]))
+print(stats.ranksums(wilcoxondata[0], wilcoxondata[2]))
+print(stats.ranksums(wilcoxondata[0], wilcoxondata[3]))
+print(stats.ranksums(wilcoxondata[0], wilcoxondata[4]))
+
+print(stats.ranksums(wilcoxondata[1], wilcoxondata[2]))
+print(stats.ranksums(wilcoxondata[1], wilcoxondata[3]))
+print(stats.ranksums(wilcoxondata[1], wilcoxondata[4]))
+
+print(stats.ranksums(wilcoxondata[2], wilcoxondata[3]))
+print(stats.ranksums(wilcoxondata[2], wilcoxondata[4]))
+
+print(stats.ranksums(wilcoxondata[3], wilcoxondata[4]))
