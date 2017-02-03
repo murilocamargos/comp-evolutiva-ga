@@ -1,7 +1,7 @@
 # -*- coding: cp1252 -*-
 import numpy as np
+import matplotlib.pyplot as plt
 import copy
-from tempfile import TemporaryFile
 
 class Pop:
     def __init__(self, pop, fitness):
@@ -108,10 +108,12 @@ class GA:
         self.checkConfig(['maxEpochs', 'selectionType', 'crossType', 'crossRate', 'mutationType', 'mutationRate'])
         c = self.config
 
-        ft = []
+        ft = np.zeros((ntests, 2))
 
         for nt in xrange(ntests):
             p = self.randomPop()
+            fitpop = []
+            fitbst = []
 
             for i in xrange(c['maxEpochs']):
                 pp = copy.deepcopy(p)
@@ -122,14 +124,26 @@ class GA:
                 p.pop = np.vstack((p.pop, d.pop))
                 p = p.substitution()
 
-            ft.append(max(p.eval()))
+                fitpop.append(np.mean(p.eval()))
+                fitbst.append(max(p.eval()))
 
-        ft = np.array(ft)
+            ft[nt,:] = np.array([max(fitbst), max(fitpop)])
 
         if name != '':
             np.save(name + '.npy', ft)
+        else:
+            plt.figure()
+            plt.plot(fitpop, label='Fitness medio')
+            plt.plot(fitbst, label='Melhor individuo')
+            plt.legend()
+            plt.show()
 
         return ft
+
+
+
+
+
 
 def saida(bits):
     b = [0] + list(bits)
@@ -147,15 +161,11 @@ e = GA({
     'representation': 'binary',
     'fitnessEval': saida,
     'crossRate': 0.8,
-    'crossType': 'uniform',
-    'selectionType': 'tournament',
+    'crossType': '1cp',
+    'selectionType': 'roulette',
     'mutationRate': 0.025,
     'mutationType': 'uniform',
     'maxEpochs': 50
 })
 
-f = e.test(100, '54_mutationRate_0.75')
-print(max(f), min(f), np.mean(f))
-
-#f=np.load('21_selectionType_roulette.npy')
-#print(max(f), min(f), np.mean(f))
+e.test(100, '12_crossType_1cp')
