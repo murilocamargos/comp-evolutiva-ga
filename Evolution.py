@@ -1,4 +1,5 @@
-# -*- coding: cp1252 -*-
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
 import numpy as np
 import matplotlib.pyplot as plt
 import copy
@@ -80,9 +81,16 @@ class Pop:
 
         return Pop(self.pop, self.fitness)
 
-    def substitution(self):
-        fit = self.eval()
-        idx = np.argsort(fit)[-self.size:]
+    def substitution(self, stype):
+        if stype == 'elitism':
+            fit = self.eval()
+            idx = np.argsort(fit)[-self.size:]
+        elif stype == 'random':
+            idx = np.arange(self.size)
+            np.random.shuffle(idx)
+            idx = idx[:self.size]
+        else:
+            raise Exception('O método de substituição `' + stype + '` ainda não foi implementado!')
 
         return Pop(self.pop[idx], self.fitness)
 
@@ -104,9 +112,12 @@ class GA:
         if c['representation'] == 'binary':
             return Pop(np.round(np.random.rand(c['popSize'], c['popDim'])), c['fitnessEval'])
 
-    def test(self, ntests=1, name=''):
-        self.checkConfig(['maxEpochs', 'selectionType', 'crossType', 'crossRate', 'mutationType', 'mutationRate'])
+    def test(self):
+        self.checkConfig(['maxEpochs', 'substitutionType', 'selectionType', 'crossType', 'crossRate', 'mutationType', 'mutationRate'])
         c = self.config
+
+        ntests = c['testNum'] if 'testNum' in c else 1
+        name = c['testFile'] if 'testFile' in c else ''
 
         ft = np.zeros((ntests, 2))
 
@@ -114,6 +125,7 @@ class GA:
             p = self.randomPop()
             fitpop = []
             fitbst = []
+            ndist = []
 
             for i in xrange(c['maxEpochs']):
                 pp = copy.deepcopy(p)
@@ -122,50 +134,25 @@ class GA:
                 d = b.mutation(c['mutationType'], c['mutationRate'])
                 # Join sets
                 p.pop = np.vstack((p.pop, d.pop))
-                p = p.substitution()
+                p = p.substitution(c['substitutionType'])
 
                 fitpop.append(np.mean(p.eval()))
                 fitbst.append(max(p.eval()))
+
+                #http://stackoverflow.com/questions/16970982/find-unique-rows-in-numpy-array
+                ndist.append(len(np.vstack({tuple(row) for row in p.pop})))
 
             ft[nt,:] = np.array([max(fitbst), max(fitpop)])
 
         if name != '':
             np.save(name + '.npy', ft)
+
         else:
             plt.figure()
-            plt.plot(fitpop, label='Fitness medio')
-            plt.plot(fitbst, label='Melhor individuo')
+            plt.plot(fitpop, label='Fitness médio: ' + str(round(fitpop[-1], 2)))
+            plt.plot(fitbst, label='Fitness do melhor indivíduo: ' + str(max(fitbst)))
+            plt.plot(ndist, label='Num. de soluções distintas: ' + str(ndist[-1]))
             plt.legend()
             plt.show()
 
         return ft
-
-
-
-
-
-
-def saida(bits):
-    b = [0] + list(bits)
-    return 9 + b[2]*b[5] - b[23]*b[14]\
-    + b[24]*b[4] - b[21]*b[10] + b[36]*b[15] - b[11]*b[26]\
-    + b[16]*b[17] + b[3]*b[33] + b[28]*b[19] + b[12]*b[34]\
-    - b[31]*b[32] - b[22]*b[25] + b[35]*b[27] - b[29]*b[7]\
-    + b[8]*b[13] - b[6]*b[9] + b[18]*b[20] - b[1]*b[30]\
-    + b[23]*b[4] + b[21]*b[15] + b[26]*b[16] + b[31]*b[12]\
-    + b[25]*b[19] + b[7]*b[8] + b[9]*b[18] + b[1]*b[33]
-
-e = GA({
-    'popSize': 30,
-    'popDim': 36,
-    'representation': 'binary',
-    'fitnessEval': saida,
-    'crossRate': 0.5,
-    'crossType': 'uniform',
-    'selectionType': 'roulette',
-    'mutationRate': 0.75,
-    'mutationType': 'uniform',
-    'maxEpochs': 50
-})
-
-e.test(100, '55_mutationRate_0.75')
