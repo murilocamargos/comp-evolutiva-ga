@@ -21,12 +21,11 @@ e = GA({
     'selectionType': 'roulette',
     'mutationRate': 0.025,
     'mutationType': 'uniform',
-    'maxEpochs': 50,
+    'maxEpochs': 100,
     'substitutionType': 'elitism',
-    'testFile': 'results',
-    'testNum': 10
+    'testFile': 'results', # Se comentar essa linha não gera arquivo para analise
+    'testNum': 10 # numero de testes, 1 para gerar gráficos com fitness medio
 })
 
 e.test()
-
-analize(['results'])
+analize(['results']) # analisa o arquivo 'results.npy' gerado nos testes
