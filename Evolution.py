@@ -145,7 +145,7 @@ class GA:
             ft[nt,:] = np.array([max(fitbst), max(fitpop)])
 
         if name != '':
-            np.save(name + '.npy', ft)
+            np.save('dados/' + name + '.npy', ft)
 
         else:
             plt.figure()
