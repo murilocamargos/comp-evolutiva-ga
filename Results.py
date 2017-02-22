@@ -9,7 +9,7 @@ def analize(files):
     alldata = []
     wilcoxondata = []
     for f in files:
-        data = np.load(f + '.npy')
+        data = np.load('dados/' + f + '.npy')
         wilcoxondata.append(data[:, 1])
         data = data[:, 0]
 
