@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
 import numpy as np
-import matplotlib.pyplot as plt
-import copy
 
-class Pop:
+class Pop(object):
     def __init__(self, pop, fitness):
         self.pop = pop
         self.fitness = fitness
@@ -22,15 +19,15 @@ class Pop:
         if stype == 'roulette':
             f = self.eval()
             a = np.cumsum(f/(len(f)*np.mean(f)))
-            for i in xrange(len(f)):
-                ind = self.pop[((a > np.random.rand()) == True).tostring().find('\x01')]
+            for i in range(len(f)):
+                ind = self.pop[((a > np.random.rand()) == True).tostring().find(b'\x01')]
                 S[i,:] = ind
             return Pop(S, self.fitness)
 
         if stype == 'tournament':
             k = min(2, self.size)
             a = np.arange(self.size)
-            for i in xrange(self.size):
+            for i in range(self.size):
                 np.random.shuffle(a)
                 sol = self.pop[a[:k],:]
                 win = sol[np.argsort(self.eval(sol))[-1]]
@@ -67,7 +64,7 @@ class Pop:
         return Pop(Q[1:,:], self.fitness)
 
     def mutation(self, mtype, rate):
-        for i in xrange(self.size):
+        for i in range(self.size):
             if mtype == '1bit':
                 bit = np.random.randint(0,36)
                 if np.random.rand() <= rate:
@@ -93,66 +90,3 @@ class Pop:
             raise Exception('O método de substituição `' + stype + '` ainda não foi implementado!')
 
         return Pop(self.pop[idx], self.fitness)
-
-
-
-class GA:
-    def __init__(self, config):
-        self.config = config
-
-    def checkConfig(self, indexList):
-        for i in indexList:
-            if not i in self.config:
-                raise Exception('Você precisa definir a configuração `' + i + '`')
-
-    def randomPop(self):
-        self.checkConfig(['representation', 'popDim', 'popSize', 'fitnessEval'])
-        c = self.config
-
-        if c['representation'] == 'binary':
-            return Pop(np.round(np.random.rand(c['popSize'], c['popDim'])), c['fitnessEval'])
-
-    def test(self):
-        self.checkConfig(['maxEpochs', 'substitutionType', 'selectionType', 'crossType', 'crossRate', 'mutationType', 'mutationRate'])
-        c = self.config
-
-        ntests = c['testNum'] if 'testNum' in c else 1
-        name = c['testFile'] if 'testFile' in c else ''
-
-        ft = np.zeros((ntests, 2))
-
-        for nt in xrange(ntests):
-            p = self.randomPop()
-            fitpop = []
-            fitbst = []
-            ndist = []
-
-            for i in xrange(c['maxEpochs']):
-                pp = copy.deepcopy(p)
-                a = pp.selection(c['selectionType'])
-                b = a.crossover(c['crossType'], c['crossRate'])
-                d = b.mutation(c['mutationType'], c['mutationRate'])
-                # Join sets
-                p.pop = np.vstack((p.pop, d.pop))
-                p = p.substitution(c['substitutionType'])
-
-                fitpop.append(np.mean(p.eval()))
-                fitbst.append(max(p.eval()))
-
-                #http://stackoverflow.com/questions/16970982/find-unique-rows-in-numpy-array
-                ndist.append(len(np.vstack({tuple(row) for row in p.pop})))
-
-            ft[nt,:] = np.array([max(fitbst), max(fitpop)])
-
-        if name != '':
-            np.save('dados/' + name + '.npy', ft)
-
-        else:
-            plt.figure()
-            plt.plot(fitpop, label='Fitness médio: ' + str(round(fitpop[-1], 2)))
-            plt.plot(fitbst, label='Fitness do melhor indivíduo: ' + str(max(fitbst)))
-            plt.plot(ndist, label='Num. de soluções distintas: ' + str(ndist[-1]))
-            plt.legend()
-            plt.show()
-
-        return ft

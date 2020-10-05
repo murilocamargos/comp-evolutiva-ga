@@ -1,4 +1,4 @@
-from Evolution import GA
+from evcomp.ga import GA
 from Results import analize
 
 def saida(bits):
@@ -23,9 +23,9 @@ e = GA({
     'mutationType': 'uniform',
     'maxEpochs': 100,
     'substitutionType': 'elitism',
-    'testFile': 'results', # Se comentar essa linha não gera arquivo para analise
-    'testNum': 10 # numero de testes, 1 para gerar gráficos com fitness medio
+    #'testFile': 'results', # Se comentar essa linha não gera arquivo para analise
+    #'testNum': 10 # numero de testes, 1 para gerar gráficos com fitness medio
 })
 
 e.test()
-analize(['results']) # analisa o arquivo 'results.npy' gerado nos testes
+#analize(['results']) # analisa o arquivo 'results.npy' gerado nos testes
