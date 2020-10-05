@@ -4,10 +4,40 @@ from .pop import Pop
 import numpy as np
 import matplotlib.pyplot as plt
 import copy
+from pathlib import Path
+import os
 
 class GA(object):
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, popDim, crossRate, mutationRate, fitnessEval, popSize = 30, \
+        representation = 'binary', crossType = 'uniform', selectionType = 'roulette',\
+        mutationType = 'uniform', maxEpochs = 100, substitutionType = 'elitism',
+        testFile = None, testNum = 1):
+        self.config = {
+            'popDim': popDim,
+            'crossRate': crossRate,
+            'mutationRate': mutationRate,
+            'fitnessEval': fitnessEval,
+            'popSize': popSize,
+            'representation': representation,
+            'crossType': crossType,
+            'selectionType': selectionType,
+            'mutationType': mutationType,
+            'maxEpochs': maxEpochs,
+            'substitutionType': substitutionType,
+            'testFile': testFile,
+            'testNum': testNum
+        }
+        
+        if testFile is not None:
+            path = Path(testFile)
+            if path.is_dir():
+                raise Exception("You must provide a file path.")
+            
+            if not os.access(path.parent, os.W_OK):
+                raise Exception(f"You do not have writting permissions to `{path.parent}`.")
+
+            self.config['testFile'] = path
+
 
     def checkConfig(self, indexList):
         for i in indexList:
@@ -26,7 +56,6 @@ class GA(object):
         c = self.config
 
         ntests = c['testNum'] if 'testNum' in c else 1
-        name = c['testFile'] if 'testFile' in c else ''
 
         ft = np.zeros((ntests, 2))
 
@@ -53,8 +82,8 @@ class GA(object):
 
             ft[nt,:] = np.array([max(fitbst), max(fitpop)])
 
-        if name != '':
-            np.save('dados/' + name + '.npy', ft)
+        if c['testFile'] is not None:
+            np.save(c['testFile'], ft)
 
         else:
             plt.figure()
