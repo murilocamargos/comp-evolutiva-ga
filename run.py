@@ -20,6 +20,7 @@ e = GA(popSize = 30,
     mutationRate = 0.025,
     mutationType = 'uniform',
     maxEpochs = 100,
-    substitutionType = 'elitism')
+    substitutionType = 'elitism',
+    plotFitness = True)
 
-e.test()
+e.optimize()

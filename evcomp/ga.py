@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from .pop import Pop
 
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 import copy
 from pathlib import Path
 import os
@@ -11,7 +13,7 @@ class GA(object):
     def __init__(self, popDim, crossRate, mutationRate, fitnessEval, popSize = 30, \
         representation = 'binary', crossType = 'uniform', selectionType = 'roulette',\
         mutationType = 'uniform', maxEpochs = 100, substitutionType = 'elitism',
-        testFile = None, testNum = 1):
+        resultsPath = None, plotFitness = False):
         self.config = {
             'popDim': popDim,
             'crossRate': crossRate,
@@ -24,19 +26,19 @@ class GA(object):
             'mutationType': mutationType,
             'maxEpochs': maxEpochs,
             'substitutionType': substitutionType,
-            'testFile': testFile,
-            'testNum': testNum
+            'resultsPath': resultsPath,
+            'plotFitness': plotFitness
         }
         
-        if testFile is not None:
-            path = Path(testFile)
+        if resultsPath is not None:
+            path = Path(resultsPath)
             if path.is_dir():
                 raise Exception("You must provide a file path.")
             
             if not os.access(path.parent, os.W_OK):
                 raise Exception(f"You do not have writting permissions to `{path.parent}`.")
 
-            self.config['testFile'] = path
+            self.config['resultsPath'] = path
 
 
     def checkConfig(self, indexList):
@@ -51,46 +53,44 @@ class GA(object):
         if c['representation'] == 'binary':
             return Pop(np.round(np.random.rand(c['popSize'], c['popDim'])), c['fitnessEval'])
 
-    def test(self):
+    def optimize(self):
         self.checkConfig(['maxEpochs', 'substitutionType', 'selectionType', 'crossType', 'crossRate', 'mutationType', 'mutationRate'])
         c = self.config
 
-        ntests = c['testNum'] if 'testNum' in c else 1
+        p = self.randomPop()
 
-        ft = np.zeros((ntests, 2))
+        results = {'Epoch': [i for i in range(c['maxEpochs'])],\
+                   'PopFitness': [0 for _ in range(c['maxEpochs'])],\
+                   'BstFitness': [0 for _ in range(c['maxEpochs'])],\
+                   'NumDistn': [0 for _ in range(c['maxEpochs'])]}
 
-        for nt in range(ntests):
-            p = self.randomPop()
-            fitpop = []
-            fitbst = []
-            ndist = []
+        for e in range(c['maxEpochs']):
+            pp = copy.deepcopy(p)
+            a = pp.selection(c['selectionType'])
+            b = a.crossover(c['crossType'], c['crossRate'])
+            d = b.mutation(c['mutationType'], c['mutationRate'])
+            # Join sets
+            p.pop = np.vstack((p.pop, d.pop))
+            p = p.substitution(c['substitutionType'])
 
-            for _ in range(c['maxEpochs']):
-                pp = copy.deepcopy(p)
-                a = pp.selection(c['selectionType'])
-                b = a.crossover(c['crossType'], c['crossRate'])
-                d = b.mutation(c['mutationType'], c['mutationRate'])
-                # Join sets
-                p.pop = np.vstack((p.pop, d.pop))
-                p = p.substitution(c['substitutionType'])
+            ft = p.eval()
+            results['PopFitness'][e] = np.mean(ft)
+            results['BstFitness'][e] = np.max(ft)
+            #http://stackoverflow.com/questions/16970982/find-unique-rows-in-numpy-array
+            results['NumDistn'][e] = np.max(np.unique(p.pop, axis=0).shape[0])
+        
+        resDf = pd.DataFrame(results)
 
-                fitpop.append(np.mean(p.eval()))
-                fitbst.append(max(p.eval()))
+        if c['resultsPath'] is not None:
+            np.save(c['resultsPath'], (p, resDf))
 
-                #http://stackoverflow.com/questions/16970982/find-unique-rows-in-numpy-array
-                ndist.append(np.unique(p.pop, axis=0).shape[0])
-
-            ft[nt,:] = np.array([max(fitbst), max(fitpop)])
-
-        if c['testFile'] is not None:
-            np.save(c['testFile'], ft)
-
-        else:
-            plt.figure()
-            plt.plot(fitpop, label='Fitness médio: ' + str(round(fitpop[-1], 2)))
-            plt.plot(fitbst, label='Fitness do melhor indivíduo: ' + str(max(fitbst)))
-            plt.plot(ndist, label='Num. de soluções distintas: ' + str(ndist[-1]))
-            plt.legend()
+        if c['plotFitness']:
+            sns.set_style('darkgrid')
+            _, ax = plt.subplots()
+            sns.lineplot(x='Epoch', y='PopFitness', data=resDf, label='Average fitness', ax=ax)
+            sns.lineplot(x='Epoch', y='BstFitness', data=resDf, label='Best fitness', ax=ax)
+            sns.lineplot(x='Epoch', y='NumDistn', data=resDf, label='Num. of distinct solutions', ax=ax)
+            ax.set_ylabel('PopFitness, BstFitness, NumDistn')
             plt.show()
 
-        return ft
+        return p, resDf
